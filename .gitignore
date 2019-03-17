@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+.idea
+_ReSharper.Caches
+Logs
+credentials.txt
+obj
+bin
+channels.json
+settings.json
