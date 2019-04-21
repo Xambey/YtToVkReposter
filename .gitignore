@@ -36,5 +36,4 @@ Logs
 credentials.txt
 obj
 bin
-channels.json
-settings.json
+*.json
