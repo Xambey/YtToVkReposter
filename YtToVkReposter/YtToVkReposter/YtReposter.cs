@@ -24,6 +24,7 @@ namespace YtToVkReposter
         //Links of remote PubSub pages
         private string PathToChannelsConfig { get; set; }
         private string PathToSettingsConfig { get; set; }
+        private DateTime startServerTime { get; set; }
         private List<Channel> _channels;
         private Timer _timer;
         private string _ytKey;
@@ -45,6 +46,8 @@ namespace YtToVkReposter
                                                      new System.IO.FileInfo(pathToResourcesTemp + "log4net.config"));
             Logger = log4net.LogManager.GetLogger(typeof(YtReposter));
 
+            startServerTime = DateTime.UtcNow;
+
             Logger.Info("YtReposter initialized!");
         }
 
@@ -52,26 +55,30 @@ namespace YtToVkReposter
         {
             if (File.Exists(PathToChannelsConfig))
             {
-                var json = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(PathToChannelsConfig));
+                var json = JsonConvert.DeserializeObject<List<Channel>>(File.ReadAllText(PathToChannelsConfig));
                 if (json != null)
                 {
-                    Logger.Info("Channels configuration found");
                     foreach (var item in json)
                     {
-                        if (_channels.FirstOrDefault(x => x.YtName == item.Key) == null)
+//                        if (_channels.FirstOrDefault(x => x.YtName == item.Key) == null)
+//                        {
+//                            var channel = new Channel()
+//                            {
+//                                YtName = item.Key,
+//                                VkToken = item.Value["VkToken"].ToObject<string>(),
+//                                YtId = item.Value["YtId"].ToObject<string>(),
+//                                VkGroupId = item.Value["VkGroupId"].ToObject<string>(),
+//                                VkUserId = item.Value["VkUserId"].ToObject<string>()
+//                            };
+//                            channel.VideoStack.PushRange(item.Value["VideoStack"].Values<string>());
+//                            _channels.Add(channel);
+//
+//                            Logger.Info($"Channel {item.Key} added");
+//                        }
+                        if (!_channels.Exists(x => x.YtName == item.YtName))
                         {
-                            var channel = new Channel()
-                            {
-                                YtName = item.Key,
-                                VkToken = item.Value["VkToken"].ToObject<string>(),
-                                YtId = item.Value["YtId"].ToObject<string>(),
-                                VkGroupId = item.Value["VkGroupId"].ToObject<string>(),
-                                VkUserId = item.Value["VkUserId"].ToObject<string>()
-                            };
-                            channel.VideoStack.PushRange(item.Value["VideoStack"].Values<string>());
-                            _channels.Add(channel);
-
-                            Logger.Info($"Channel {item.Key} added");
+                            _channels.Add(item);
+                            Logger.Info($"Channel {item.YtName} added");
                         }
                     }
                 }
@@ -119,51 +126,30 @@ namespace YtToVkReposter
             }
             return false;
         }
-
-        private void RemoveChannelFromFile(Channel channel)
+        private void UpdateChannelInFile(Channel channel)
         {
             if (File.Exists(PathToChannelsConfig))
             {
-                var json = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(File.ReadAllText(PathToChannelsConfig));
-                if (json.ContainsKey(channel.YtName))
-                {
-                    json.Remove(channel.YtName);
-                    File.WriteAllText(PathToChannelsConfig, JsonConvert.SerializeObject(json, Formatting.Indented));
+//                var jchannel = new JObject();
+//                jchannel.Add("YtId", new JValue(channel.YtId));
+//                jchannel.Add("VkToken", new JValue(channel.VkToken));
+//                jchannel.Add("VkGroupId", new JValue(channel.VkGroupId));
+//                jchannel.Add("VkUserId", new JValue(channel.VkUserId));
+//                
+//                var ar = new JArray(channel.VideoStack.Select(x => new JValue(x)));
+//                jchannel.Add("VideoStack", ar);
+//                var ch = json.SelectToken($".{channel.YtName}", false);
+//                if (ch != null)
+//                {
+//                    ch["YtId"] = new JValue(channel.YtId);
+//                    ch["VkToken"] = new JValue(channel.VkToken);
+//                    ch["VideoStack"] = new JArray(channel.VideoStack.Select(x => new JValue(x)));
+//                    ch["VkGroupId"] = new JValue(channel.VkGroupId);
+//                }
+//                else
+//                    json.Add(channel.YtName, jchannel);
 
-                    Logger.Info($"Channel {channel.YtName} removed from configuration");
-                }  
-            }
-            else
-            {
-                Logger.Error("RemoveChannelFromFile - Configuration file not found!");
-            }
-        }
-        private void WriteChannelToFile(Channel channel)
-        {
-            if (File.Exists(PathToChannelsConfig))
-            {
-                var json = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(PathToChannelsConfig));
-                
-                var jchannel = new JObject();
-                jchannel.Add("YtId", new JValue(channel.YtId));
-                jchannel.Add("VkToken", new JValue(channel.VkToken));
-                jchannel.Add("VkGroupId", new JValue(channel.VkGroupId));
-                jchannel.Add("VkUserId", new JValue(channel.VkUserId));
-                
-                var ar = new JArray(channel.VideoStack.Select(x => new JValue(x)));
-                jchannel.Add("VideoStack", ar);
-                var ch = json.SelectToken($".{channel.YtName}", false);
-                if (ch != null)
-                {
-                    ch["YtId"] = new JValue(channel.YtId);
-                    ch["VkToken"] = new JValue(channel.VkToken);
-                    ch["VideoStack"] = new JArray(channel.VideoStack.Select(x => new JValue(x)));
-                    ch["VkGroupId"] = new JValue(channel.VkGroupId);
-                }
-                else
-                    json.Add(channel.YtName, jchannel);
-
-                File.WriteAllText(PathToChannelsConfig, JsonConvert.SerializeObject(json, Formatting.Indented));
+                File.WriteAllText(PathToChannelsConfig, JsonConvert.SerializeObject(_channels, Formatting.Indented));
 
                 Logger.Info($"Channel {channel.YtName} configuration updated");
             }
@@ -243,10 +229,11 @@ namespace YtToVkReposter
                 searchListRequest.ChannelId = channel.YtId;
                 searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                 searchListRequest.Type = "video";
+                searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1));
                 channel.VideoStack.PushRange(searchListRequest.Execute().Items.Select(x => x.Id.VideoId)); 
             }
             _channels.Add(channel);
-            WriteChannelToFile(channel);
+            UpdateChannelInFile(channel);
 
             Logger.Info($"Channel {channel.YtName} has been added");
         }
@@ -255,9 +242,9 @@ namespace YtToVkReposter
         {
             var channel = _channels.FirstOrDefault(x => x.YtName == name);
             if (channel != null)
-            {                
-                RemoveChannelFromFile(channel);
+            {
                 _channels.Remove(channel);
+                UpdateChannelInFile(channel);
 
                 Logger.Info($"Channel {channel.YtName} has been removed");
             } 
@@ -347,18 +334,54 @@ namespace YtToVkReposter
             }
             return null;
         }
+
+        /// <summary>
+        /// Обновляет списки видео в конфигурации на последние (чтобы не постить старое)
+        /// </summary>
+        private void InitChannelsFromFile()
+        {
+            Logger.Info("Init update channels...");
+            //Загружаем каналы
+            LoadChannelsFromFile();
+
+            using (var ytApi = new YouTubeService(new BaseClientService.Initializer() { ApiKey = _ytKey }))
+            {
+                foreach (var channel in _channels)
+                {
+                    if (channel.UpdateOnInit)
+                    {
+                        var searchListRequest = ytApi.Search.List("snippet");
+                        searchListRequest.ChannelId = channel.YtId;
+                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
+                        searchListRequest.Type = "video";
+                        searchListRequest.MaxResults = 20;
+                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1));
+
+                        var results = searchListRequest.Execute().Items.Take(20).Select(sn => sn.Id.VideoId).ToList();
+
+                        channel.VideoStack.Clear();
+                        channel.VideoStack.PushRange(results);
+
+                        UpdateChannelInFile(channel);
+
+                        Thread.Sleep(300);
+                    }
+                }
+            }
+        }
+
         public void Start()
         {
             if (_timer == null)
-            {   
-                LoadChannelsFromFile();
-
+            {
                 Logger.Info("Server has been started");
 
                 Logger.Info("Enter Api key (30 seconds waiting): ");
 
                 if (LoadSettingsFromFile()) {
                     Logger.Info("Api Key loaded from settings.json...");
+
+                    InitChannelsFromFile();
 
                     _timer = new Timer(HandlerRepostMessage, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
                     Logger.Info("Repost handler started!");
@@ -398,49 +421,71 @@ namespace YtToVkReposter
                         searchListRequest.ChannelId = channel.YtId;
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
-                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1));
+                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1)); //Видео за сутки
 
                         var searchListResult = searchListRequest.Execute();
                         if (searchListResult.Items.Count > 0)
                         {
-                            var source = searchListResult.Items.Reverse();
-                            var enumerable = source as IList<Google.Apis.YouTube.v3.Data.SearchResult> ?? source.ToList();
-                            var videos = enumerable.Where(p => !channel.VideoStack.Contains(p.Id.VideoId));
+                            var source = searchListResult.Items.Reverse().ToList();
+                            //Список первых 20 публикации ожидаемых к публикации, которые не содержатся в текущем стеке видео
+                            var lastShippets = source.Take(20).Where(p => !channel.VideoStack.Contains(p.Id.VideoId)).ToList();
 
-                            var searchResults = videos as IList<Google.Apis.YouTube.v3.Data.SearchResult> ?? videos.ToList();
-                            if (searchResults.Any())
+                            if (lastShippets.Any())
                             {
-                                if (channel.YtName == "BlackSilverChannel")
+                                /*
+                                if (channel.ytname == "blacksilverchannel")
                                 {
-                                    var storage = _channels.FirstOrDefault(x => x.YtName == "BlackSilverUfa")
-                                        ?.VideoStack;
+                                    var storage = _channels.firstordefault(x => x.ytname == "blacksilverufa")
+                                        ?.videostack;
                                     if (storage != null)
                                     {
-                                        var remove = searchResults.Where(x => storage.Contains(x.Id.VideoId)).Select(x => x.Id.VideoId);
-                                        var enumerable1 = remove as IList<string> ?? remove.ToList();
-                                        if(enumerable1.Any())
+                                        var remove = searchresults.where(x => storage.contains(x.id.videoid)).select(x => x.id.videoid);
+                                        var enumerable1 = remove as ilist<string> ?? remove.tolist();
+                                        if(enumerable1.any())
                                             foreach (var rem in enumerable1)
                                             {
-                                                searchResults.Remove(searchResults.First(x => x.Id.VideoId == rem));
+                                                searchresults.remove(searchresults.first(x => x.id.videoid == rem));
                                             }
                                     }
                                 }
-                                channel.VideoStack.PushRange(enumerable.Select(x => x.Id.VideoId));
-                                WriteChannelToFile(channel);
-                                var info = searchResults.ToDictionary(p => p.Id.VideoId);
+                                */
+
+                                //Список id видео к публикации
+                                var lastVideos = lastShippets.Select(x => x.Id.VideoId).ToList();
+
+                                //Список видео, которые уже публиковались в этой группе от других каналов и есть в lastVideos
+                                var channelVideosFromSameGroupVk = _channels
+                                    .Where(ch => ch.VkGroupId == channel.VkGroupId && ch != channel && ch.VideoStack != null)
+                                    .SelectMany(ch => ch.VideoStack.Select(x => x))
+                                    .Intersect(lastVideos)
+                                    .ToList();
+                                //Список видео id для публикации
+                                var newVideos = lastVideos.Except(channelVideosFromSameGroupVk).ToList();
+
+                                //Добавляем новые видео в стек video id
+                                channel.VideoStack.PushRange(newVideos);
+
+                                //Обновляем конфигурацию канала (videoId stack) в channels.json
+                                UpdateChannelInFile(channel);
+
+                                var info = newVideos.Select(x => lastShippets.First(s => s.Id.VideoId == x)).ToDictionary(p => p);
                                 VkApi api = new VkApi();
-                                api.Authorize(new ApiAuthParams()
-                                {
-                                    AccessToken = channel.VkToken,
-                                    ApplicationId = 6321454,
-                                    UserId = long.Parse(channel.VkUserId)
-                                });
+                              
                                 foreach (var item in info)
                                 {
+                                    await api.AuthorizeAsync(new ApiAuthParams()
+                                    {
+                                        AccessToken = channel.VkToken,
+                                        ApplicationId = 6321454,
+                                        UserId = long.Parse(channel.VkUserId)
+                                    });
+                                    if (!api.IsAuthorized)
+                                        throw new Exception(
+                                            $"Vk api client not authorized. YtName = {channel.YtName}, Video Id = {item.Value.Id.VideoId}");
                                     var sVideo = api.Video.Save(new VideoSaveParams()
                                     {
                                         Name = item.Value.Snippet.Title,
-                                        Link = $"https://www.youtube.com/watch?v={item.Key}",
+                                        Link = $"https://www.youtube.com/watch?v={item.Key.Id.VideoId}",
                                         Wallpost = false,
                                         GroupId = int.Parse(channel.VkGroupId)
                                     });
@@ -462,12 +507,16 @@ namespace YtToVkReposter
                                             new Video()
                                             {
                                                 OwnerId = -(int.Parse(channel.VkGroupId)),
-                                                Id = sVideo.Id
+                                                Id = sVideo.Id,
+                                                Player = new Uri($"https://www.youtube.com/watch?v={item.Key.Id.VideoId}"),
+                                                Processing = false
                                             }
-                                        }
+                                        },
+                                        Services = null
                                     });
                                     Logger.Info(
                                         $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
+                                    Thread.Sleep(500);
                                 }
                             }
                         }
@@ -477,7 +526,8 @@ namespace YtToVkReposter
             catch (Exception ex)
             {
                 var mes = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {mes}");
+                Logger.Warn($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.GetType()} {mes}");
+                Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
             }
         }
     }
