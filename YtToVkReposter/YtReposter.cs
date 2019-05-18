@@ -496,6 +496,7 @@ namespace YtToVkReposter
                                         if (!response.IsSuccessStatusCode)
                                             throw new Exception(
                                                 $"Error loading video {response.StatusCode}: {response.ReasonPhrase}");
+                                        Logger.Info($"Video uploaded to vk: {response.StatusCode} {response.ReasonPhrase}");
                                     }
 
                                     api.Wall.Post(new WallPostParams()
@@ -514,7 +515,7 @@ namespace YtToVkReposter
                                     });
                                     Logger.Info(
                                         $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
-                                    Thread.Sleep(500);
+                                    Thread.Sleep(1000);
                                 }
                             }
                         }
@@ -526,6 +527,7 @@ namespace YtToVkReposter
                 var mes = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 Logger.Warn($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.GetType()} {mes}");
                 Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
+                Logger.Info($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
             }
         }
     }
