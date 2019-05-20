@@ -480,7 +480,7 @@ namespace YtToVkReposter
                                     
                                     do
                                     {
-                                        Thread.Sleep(3000);
+                                        Thread.Sleep(1000);
                                         sVideo = await uploadVideoToVk(api, channel, item);
                                     } while ((sVideo == null || sVideo.Files.External == default(Uri)) && count-- != 0 );
 
@@ -506,7 +506,7 @@ namespace YtToVkReposter
                                     }
                                     else
                                     {
-                                        Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} ERROR. Video '{item.Value.Snippet.Title}' has NOT been reposted to Vk group of {channel.YtName}");
+                                        Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} ERROR. Video '{item.Value.Snippet.Title}' not uploaded to Vk group of {channel.YtName}");
                                     }
                                 }
                             }
@@ -548,12 +548,11 @@ namespace YtToVkReposter
                 if (!response.IsSuccessStatusCode)
                     throw new Exception(
                         $"Error loading video {response.StatusCode}: {response.ReasonPhrase}");
-                Logger.Info($"Video uploaded to vk: {response.StatusCode} {response.ReasonPhrase}");
+                Logger.Info($"Video uploaded to vk. Status: {response.StatusCode} Reason: {response.ReasonPhrase}");
             }
 
-            Thread.Sleep(500);
-
-            int i = 0;
+            Thread.Sleep(300);
+            
             var uploadedVideo = api.Video.Get(new VideoGetParams
             {
                 Videos = new[]
@@ -562,7 +561,7 @@ namespace YtToVkReposter
                     {
                         OwnerId = -long.Parse(channel.VkGroupId),
                         Id = sVideo.Id
-                    },
+                    }
                 },
                 OwnerId = -long.Parse(channel.VkGroupId)
             }).FirstOrDefault();
