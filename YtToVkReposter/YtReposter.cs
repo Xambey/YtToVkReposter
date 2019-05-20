@@ -15,6 +15,7 @@ using VkNet;
 using VkNet.Model;
 using VkNet.Model.Attachments;
 using VkNet.Model.RequestParams;
+using SearchResult = Google.Apis.YouTube.v3.Data.SearchResult;
 using Video = VkNet.Model.Attachments.Video;
 
 namespace YtToVkReposter
@@ -469,53 +470,44 @@ namespace YtToVkReposter
                                 UpdateChannelInFile(channel);
 
                                 var info = newVideos.Select(x => lastShippets.First(s => s.Id.VideoId == x)).ToDictionary(p => p);
-                                VkApi api = new VkApi();
-                              
+                                
                                 foreach (var item in info)
                                 {
-                                    await api.AuthorizeAsync(new ApiAuthParams()
-                                    {
-                                        AccessToken = channel.VkToken,
-                                        ApplicationId = 6321454,
-                                        UserId = long.Parse(channel.VkUserId)
-                                    });
-                                    if (!api.IsAuthorized)
-                                        throw new Exception(
-                                            $"Vk api client not authorized. YtName = {channel.YtName}, Video Id = {item.Value.Id.VideoId}");
-                                    var sVideo = api.Video.Save(new VideoSaveParams()
-                                    {
-                                        Name = item.Value.Snippet.Title,
-                                        Link = $"https://www.youtube.com/watch?v={item.Key.Id.VideoId}",
-                                        Wallpost = false,
-                                        GroupId = int.Parse(channel.VkGroupId)
-                                    });
-                                    using (HttpClient client = new HttpClient())
-                                    using (var message = new HttpRequestMessage(HttpMethod.Post, sVideo.UploadUrl))
-                                    {
-                                        var response = await client.SendAsync(message);
-                                        if (!response.IsSuccessStatusCode)
-                                            throw new Exception(
-                                                $"Error loading video {response.StatusCode}: {response.ReasonPhrase}");
-                                        Logger.Info($"Video uploaded to vk: {response.StatusCode} {response.ReasonPhrase}");
-                                    }
+                                    VkApi api = new VkApi();
 
-                                    api.Wall.Post(new WallPostParams()
+                                    int count = 5;
+                                    Video sVideo;
+                                    
+                                    do
                                     {
-                                        FromGroup = true,
-                                        OwnerId = -(int.Parse(channel.VkGroupId)),
-                                        Message = item.Value.Snippet.Title,
-                                        Attachments = new List<MediaAttachment>()
+                                        Thread.Sleep(3000);
+                                        sVideo = await uploadVideoToVk(api, channel, item);
+                                    } while ((sVideo == null || sVideo.Files.External == default(Uri)) && count-- != 0 );
+
+
+                                    if (count >= 0)
+                                    {
+                                        api.Wall.Post(new WallPostParams()
                                         {
-                                            new Video()
+                                            FromGroup = true,
+                                            OwnerId = -(int.Parse(channel.VkGroupId)),
+                                            Message = item.Value.Snippet.Title,
+                                            Attachments = new List<MediaAttachment>()
                                             {
-                                                OwnerId = -(int.Parse(channel.VkGroupId)),
-                                                Id = sVideo.Id
+                                                new Video()
+                                                {
+                                                    OwnerId = -(int.Parse(channel.VkGroupId)),
+                                                    Id = sVideo.Id
+                                                }
                                             }
-                                        }
-                                    });
-                                    Logger.Info(
-                                        $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
-                                    Thread.Sleep(3000);
+                                        });
+                                        Logger.Info(
+                                            $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
+                                    }
+                                    else
+                                    {
+                                        Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} ERROR. Video '{item.Value.Snippet.Title}' has NOT been reposted to Vk group of {channel.YtName}");
+                                    }
                                 }
                             }
                         }
@@ -529,6 +521,52 @@ namespace YtToVkReposter
                 Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
                 Logger.Info($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
             }
+        }
+
+        private async Task<Video> uploadVideoToVk(VkApi api, Channel channel, KeyValuePair<SearchResult, SearchResult> item)
+        {
+            await api.AuthorizeAsync(new ApiAuthParams()
+            {
+                AccessToken = channel.VkToken,
+                ApplicationId = 6321454,
+                UserId = long.Parse(channel.VkUserId)
+            });
+            if (!api.IsAuthorized)
+                throw new Exception(
+                    $"Vk api client not authorized. YtName = {channel.YtName}, Video Id = {item.Value.Id.VideoId}");
+            var sVideo = api.Video.Save(new VideoSaveParams()
+            {
+                Name = item.Value.Snippet.Title,
+                Link = $"https://www.youtube.com/watch?v={item.Key.Id.VideoId}",
+                Wallpost = false,
+                GroupId = int.Parse(channel.VkGroupId)
+            });
+            using (HttpClient client = new HttpClient())
+            using (var message = new HttpRequestMessage(HttpMethod.Post, sVideo.UploadUrl))
+            {
+                var response = await client.SendAsync(message);
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception(
+                        $"Error loading video {response.StatusCode}: {response.ReasonPhrase}");
+                Logger.Info($"Video uploaded to vk: {response.StatusCode} {response.ReasonPhrase}");
+            }
+
+            Thread.Sleep(500);
+
+            int i = 0;
+            var uploadedVideo = api.Video.Get(new VideoGetParams
+            {
+                Videos = new[]
+                {
+                    new Video()
+                    {
+                        OwnerId = -long.Parse(channel.VkGroupId),
+                        Id = sVideo.Id
+                    },
+                },
+                OwnerId = -long.Parse(channel.VkGroupId)
+            }).FirstOrDefault();
+            return uploadedVideo;
         }
     }
 }
