@@ -482,7 +482,7 @@ namespace YtToVkReposter
                                     {
                                         Thread.Sleep(1000);
                                         sVideo = await uploadVideoToVk(api, channel, item);
-                                    } while ((sVideo == null || sVideo.Files.External == default(Uri)) && count-- != 0 );
+                                    } while ((sVideo == null || !sVideo.Player.Host.Contains("www.youtube.com")) && count-- != 0 );
 
 
                                     if (count >= 0)
@@ -563,7 +563,8 @@ namespace YtToVkReposter
                         Id = sVideo.Id
                     }
                 },
-                OwnerId = -long.Parse(channel.VkGroupId)
+                OwnerId = -long.Parse(channel.VkGroupId),
+                Extended = true
             }).FirstOrDefault();
             return uploadedVideo;
         }
