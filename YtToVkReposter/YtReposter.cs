@@ -515,7 +515,7 @@ namespace YtToVkReposter
                                     });
                                     Logger.Info(
                                         $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
-                                    Thread.Sleep(1000);
+                                    Thread.Sleep(3000);
                                 }
                             }
                         }
