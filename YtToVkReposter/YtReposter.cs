@@ -156,6 +156,7 @@ namespace YtToVkReposter
             }
             else
             {
+                Logger.Info("WriteChannelToFile ERROR");
                 Logger.Error("WriteChannelToFile - Configuration file not found!");
             }
         }
@@ -331,7 +332,7 @@ namespace YtToVkReposter
             catch (Exception ex)
             {
                 var mes = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                throw new Exception($"Getting youtube channel groupId ({userName}) has been failded : {mes}");
+                throw new Exception($"Getting youtube channel groupId ({userName}) has been failed : {mes}");
             }
             return null;
         }
@@ -405,7 +406,7 @@ namespace YtToVkReposter
                 _timer.Dispose();
                 _timer = null;
 
-                Logger.Info("Server has been shut down!");
+                Logger.Info("Server has been shutdown!");
             }        
         }
         private async void HandlerRepostMessage(object state)
@@ -481,7 +482,7 @@ namespace YtToVkReposter
                                     do
                                     {
                                         Thread.Sleep(3000);
-                                        sVideo = await uploadVideoToVk(api, channel, item);
+                                        sVideo = await UploadVideoToVk(api, channel, item);
                                     } while ((sVideo == null || !sVideo.Player.Host.Contains("www.youtube.com")) && count-- != 0 );
 
 
@@ -497,16 +498,16 @@ namespace YtToVkReposter
                                                 new Video()
                                                 {
                                                     OwnerId = -(int.Parse(channel.VkGroupId)),
-                                                    Id = sVideo.Id
+                                                    Id = sVideo?.Id
                                                 }
                                             }
                                         });
                                         Logger.Info(
-                                            $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}' has been reposted to Vk group of {channel.YtName}");
+                                            $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}'(VkId={sVideo?.Id} YtId={sVideo?.Player}) has been reposted to Vk group of {channel.YtName}");
                                     }
                                     else
                                     {
-                                        Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} ERROR. Video '{item.Value.Snippet.Title}' not uploaded to Vk group of {channel.YtName}");
+                                        Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} ERROR. Video '{item.Value.Snippet.Title}'(VkId={sVideo?.Id} YtId={sVideo?.Player}) not uploaded to Vk group of {channel.YtName}");
                                     }
                                 }
                             }
@@ -519,11 +520,11 @@ namespace YtToVkReposter
                 var mes = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 Logger.Warn($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.GetType()} {mes}");
                 Logger.Error($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
-                Logger.Info($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error: {ex.ToString()}");
+                Logger.Info($"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} {current?.YtName} Repost error {ex.GetType()} {mes}");
             }
         }
 
-        private async Task<Video> uploadVideoToVk(VkApi api, Channel channel, KeyValuePair<SearchResult, SearchResult> item)
+        private async Task<Video> UploadVideoToVk(VkApi api, Channel channel, KeyValuePair<SearchResult, SearchResult> item)
         {
             await api.AuthorizeAsync(new ApiAuthParams()
             {
@@ -547,8 +548,8 @@ namespace YtToVkReposter
                 var response = await client.SendAsync(message);
                 if (!response.IsSuccessStatusCode)
                     throw new Exception(
-                        $"Error loading video {response.StatusCode}: {response.ReasonPhrase}");
-                Logger.Info($"Video uploaded to vk. Status: {response.StatusCode} Reason: {response.ReasonPhrase}");
+                        $"Error loading video {response.StatusCode}: {response.ReasonPhrase}: Yt id={item.Key.Id.VideoId} Vk id={sVideo.Id}");
+                Logger.Info($"Video uploaded to vk. Yt id={item.Key.Id.VideoId} Vk id={sVideo.Id} Status: {response.StatusCode} Reason: {response.ReasonPhrase}");
             }
 
             Thread.Sleep(300);
