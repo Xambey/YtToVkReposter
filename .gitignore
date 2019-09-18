@@ -37,3 +37,4 @@ credentials.txt
 obj
 bin
 *.json
+*.save
