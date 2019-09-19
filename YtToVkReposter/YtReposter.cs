@@ -483,7 +483,8 @@ namespace YtToVkReposter
                                     {
                                         Thread.Sleep(3000);
                                         sVideo = await UploadVideoToVk(api, channel, item);
-                                    } while ((sVideo == null || !sVideo.Player.Host.Contains("www.youtube.com")) && count-- != 0 );
+                                        Thread.Sleep(3000);
+                                    } while ((sVideo?.Player == null && count-- != 0 ));
 
 
                                     if (count >= 0)
