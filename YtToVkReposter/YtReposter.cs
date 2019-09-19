@@ -231,7 +231,8 @@ namespace YtToVkReposter
                 searchListRequest.ChannelId = channel.YtId;
                 searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                 searchListRequest.Type = "video";
-                searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1));
+                searchListRequest.MaxResults = 20;
+                searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1));
                 channel.VideoStack.PushRange(searchListRequest.Execute().Items.Select(x => x.Id.VideoId)); 
             }
             _channels.Add(channel);
@@ -357,7 +358,7 @@ namespace YtToVkReposter
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
                         searchListRequest.MaxResults = 20;
-                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1));
+                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1));
 
                         var results = searchListRequest.Execute().Items.Take(20).Select(sn => sn.Id.VideoId).ToList();
 
@@ -385,7 +386,7 @@ namespace YtToVkReposter
 
                     InitChannelsFromFile();
 
-                    _timer = new Timer(HandlerRepostMessage, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
+                    _timer = new Timer(HandlerRepostMessage, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
                     Logger.Info("Repost handler started!");
                 }
                 else
@@ -423,7 +424,8 @@ namespace YtToVkReposter
                         searchListRequest.ChannelId = channel.YtId;
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
-                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromDays(1)); //Видео за сутки
+                        searchListRequest.MaxResults = 20;
+                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1)); //Видео за сутки
 
                         var searchListResult = searchListRequest.Execute();
                         if (searchListResult.Items.Count > 0)
@@ -484,7 +486,7 @@ namespace YtToVkReposter
                                         Thread.Sleep(3000);
                                         sVideo = await UploadVideoToVk(api, channel, item);
                                         Thread.Sleep(3000);
-                                    } while ((sVideo?.Player == null && count-- != 0 ));
+                                    } while ((sVideo == null && count-- != 0 ));
 
 
                                     if (count >= 0)
@@ -544,7 +546,7 @@ namespace YtToVkReposter
                 GroupId = int.Parse(channel.VkGroupId)
             });
             using (HttpClient client = new HttpClient())
-            using (var message = new HttpRequestMessage(HttpMethod.Post, sVideo.UploadUrl))
+            using (var message = new HttpRequestMessage(HttpMethod.Get, sVideo.UploadUrl))
             {
                 var response = await client.SendAsync(message);
                 if (!response.IsSuccessStatusCode)
