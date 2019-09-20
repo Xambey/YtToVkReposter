@@ -231,8 +231,9 @@ namespace YtToVkReposter
                 searchListRequest.ChannelId = channel.YtId;
                 searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                 searchListRequest.Type = "video";
-                searchListRequest.MaxResults = 20;
-                searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1));
+                //searchListRequest.MaxResults = 20;
+                //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24)).ToISO8601S();
+                
                 channel.VideoStack.PushRange(searchListRequest.Execute().Items.Select(x => x.Id.VideoId)); 
             }
             _channels.Add(channel);
@@ -357,10 +358,11 @@ namespace YtToVkReposter
                         searchListRequest.ChannelId = channel.YtId;
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
-                        searchListRequest.MaxResults = 20;
-                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1));
+                        //searchListRequest.MaxResults = 20;
+                        //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24)).ToISO8601S();
 
-                        var results = searchListRequest.Execute().Items.Take(20).Select(sn => sn.Id.VideoId).ToList();
+                        var items = searchListRequest.Execute().Items;
+                        var results = items.Take(20).Select(sn => sn.Id.VideoId).Reverse().ToList();
 
                         channel.VideoStack.Clear();
                         channel.VideoStack.PushRange(results);
@@ -424,13 +426,13 @@ namespace YtToVkReposter
                         searchListRequest.ChannelId = channel.YtId;
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
-                        searchListRequest.MaxResults = 20;
-                        searchListRequest.PublishedAfter = DateTime.Today.Subtract(TimeSpan.FromHours(1)); //Видео за сутки
-
+                        //searchListRequest.MaxResults = 20;
+                        //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24));//.ToISO8601S(); 
+                        
                         var searchListResult = searchListRequest.Execute();
                         if (searchListResult.Items.Count > 0)
                         {
-                            var source = searchListResult.Items.Reverse().ToList();
+                            var source = searchListResult.Items.ToList();
                             //Список первых 20 публикации ожидаемых к публикации, которые не содержатся в текущем стеке видео
                             var lastShippets = source.Take(20).Where(p => !channel.VideoStack.Contains(p.Id.VideoId)).ToList();
 
@@ -461,16 +463,13 @@ namespace YtToVkReposter
                                 var channelVideosFromSameGroupVk = _channels
                                     .Where(ch => ch.VkGroupId == channel.VkGroupId && ch != channel && ch.VideoStack != null)
                                     .SelectMany(ch => ch.VideoStack.Select(x => x))
-                                    .Intersect(lastVideos)
+                                    .Intersect(lastVideos) //дубликаты
                                     .ToList();
                                 //Список видео id для публикации
                                 var newVideos = lastVideos.Except(channelVideosFromSameGroupVk).ToList();
 
-                                //Добавляем новые видео в стек video id
-                                channel.VideoStack.PushRange(newVideos);
-
-                                //Обновляем конфигурацию канала (videoId stack) в channels.json
-                                UpdateChannelInFile(channel);
+//                                //Добавляем новые видео в стек video id
+//                                channel.VideoStack.PushRange(newVideos);    
 
                                 var info = newVideos.Select(x => lastShippets.First(s => s.Id.VideoId == x)).ToDictionary(p => p);
                                 
@@ -478,18 +477,12 @@ namespace YtToVkReposter
                                 {
                                     VkApi api = new VkApi();
 
-                                    int count = 5;
-                                    Video sVideo;
-                                    
-                                    do
-                                    {
-                                        Thread.Sleep(3000);
-                                        sVideo = await UploadVideoToVk(api, channel, item);
-                                        Thread.Sleep(3000);
-                                    } while ((sVideo == null && count-- != 0 ));
+                                    Thread.Sleep(3000);
+                                    var sVideo = await UploadVideoToVk(api, channel, item);
+                                    Thread.Sleep(1000);
 
 
-                                    if (count >= 0)
+                                    if (sVideo != null && sVideo.Player.Host.Contains("youtube"))
                                     {
                                         api.Wall.Post(new WallPostParams()
                                         {
@@ -505,8 +498,11 @@ namespace YtToVkReposter
                                                 }
                                             }
                                         });
+                                        channel.VideoStack.Push(item.Value.Id.VideoId);    
                                         Logger.Info(
                                             $"{DateTime.UtcNow.AddHours(3).ToShortTimeString()} Video '{item.Value.Snippet.Title}'(VkId={sVideo?.Id} YtId={sVideo?.Player}) has been reposted to Vk group of {channel.YtName}");
+                                        //Обновляем конфигурацию канала (videoId stack) в channels.json
+                                        UpdateChannelInFile(channel);
                                     }
                                     else
                                     {
