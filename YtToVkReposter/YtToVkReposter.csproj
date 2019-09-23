@@ -6,7 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.41.1.1699" />
     <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="VkNet" Version="1.45.0" />
+    <PackageReference Include="VkNet" Version="1.47.0-238" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Resources\channels.json">

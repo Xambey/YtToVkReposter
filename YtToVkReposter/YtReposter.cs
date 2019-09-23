@@ -232,7 +232,7 @@ namespace YtToVkReposter
                 searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                 searchListRequest.Type = "video";
                 //searchListRequest.MaxResults = 20;
-                //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24)).ToISO8601S();
+                searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24));
                 
                 channel.VideoStack.PushRange(searchListRequest.Execute().Items.Select(x => x.Id.VideoId)); 
             }
@@ -359,7 +359,7 @@ namespace YtToVkReposter
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
                         //searchListRequest.MaxResults = 20;
-                        //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24)).ToISO8601S();
+                        searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24));
 
                         var items = searchListRequest.Execute().Items;
                         var results = items.Take(20).Select(sn => sn.Id.VideoId).Reverse().ToList();
@@ -427,7 +427,7 @@ namespace YtToVkReposter
                         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
                         searchListRequest.Type = "video";
                         //searchListRequest.MaxResults = 20;
-                        //searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24));//.ToISO8601S(); 
+                        searchListRequest.PublishedAfter = DateTime.UtcNow.Subtract(TimeSpan.FromHours(24));//.ToISO8601S(); 
                         
                         var searchListResult = searchListRequest.Execute();
                         if (searchListResult.Items.Count > 0)
