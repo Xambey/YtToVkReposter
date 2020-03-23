@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Google.Apis.Auth;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
@@ -11,7 +12,7 @@ namespace YtToVkReposter
     {
         private static YtReposter _server;
         
-        private static void  Run()
+        private static async Task Run()
         {
             _server = new YtReposter();
 
@@ -94,7 +95,7 @@ namespace YtToVkReposter
                                 userId = Console.ReadLine();
                             } while (string.IsNullOrEmpty(userId));
 
-                            _server.AddChannel(nameOrId, token, groupId, userId, flag);
+                            await _server.AddChannel(nameOrId, token, groupId, userId, flag);
                             break;
                         case "!remove":
                             _server.Logger.Info("Enter channel name: ");
@@ -116,12 +117,12 @@ namespace YtToVkReposter
                 }
             }
         }
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
-            Run();
+            await Run();
         }
     }
 }

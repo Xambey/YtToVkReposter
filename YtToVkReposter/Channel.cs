@@ -13,6 +13,8 @@ namespace YtToVkReposter
         public string YtId { get; set; }
         public string VkGroupId { get; set; }
         public string VkUserId { get; set; }
+        
+        public string PlaylistId { get; set; }
 
         public bool UpdateOnInit { get; set; } = true;
         public LimitedStack<string> VideoStack { get; } = new LimitedStack<string>(20);
