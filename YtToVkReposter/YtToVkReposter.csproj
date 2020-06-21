@@ -3,6 +3,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <NoWarn>NU1605</NoWarn>
+    <RuntimeIdentifiers>
+      linux-musl-x64
+    </RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.44.1.1869" />
