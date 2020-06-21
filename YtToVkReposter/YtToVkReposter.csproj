@@ -8,8 +8,7 @@
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.44.1.1869" />
     <PackageReference Include="log4net" Version="2.0.8" />
     <PackageReference Include="VkNet" Version="1.50.0" />
-  </ItemGroup>
-  <NoWarn>NU1605</NoWarn>	  
+  </ItemGroup>	  
   <ItemGroup>
     <None Update="Resources\channels.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
