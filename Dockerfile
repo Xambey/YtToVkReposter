@@ -11,7 +11,7 @@ COPY YtToVkReposter/. ./YtToVkReposter/
 WORKDIR /source/YtToVkReposter
 RUN dotnet publish -c Release -o /app -r linux-musl-x64 --self-contained true --no-restore /p:PublishTrimmed=true /p:PublishReadyToRun=true
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1.5-alpine3.12 AS runtime
 WORKDIR /app
-COPY --from=build /app ./
+COPY --from=build /app/ ./
 ENTRYPOINT ["./YtToVkReposter"]
