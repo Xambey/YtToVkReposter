@@ -1,29 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <NoWarn>NU1605</NoWarn>
-    <RuntimeIdentifiers>
-      linux-musl-x64
-    </RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.44.1.1869" />
     <PackageReference Include="log4net" Version="2.0.8" />
     <PackageReference Include="VkNet" Version="1.50.0" />
-  </ItemGroup>	  
-  <ItemGroup>
-    <None Update="Resources\channels.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\log4net.config">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\settings.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Logs\Errors" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Resources\log4net.config" />
+    <Content Include="Resources\log4net.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resources\settings.json" />
+    <Content Include="Resources\settings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resources\channels.json" />
+    <Content Include="Resources\channels.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

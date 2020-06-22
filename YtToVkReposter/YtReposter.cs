@@ -5,6 +5,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Apis.Services;
@@ -37,12 +38,13 @@ namespace YtToVkReposter
         private YoutubeService _youtubeService;
         public log4net.ILog Logger;
 
-        public YtReposter(string pathToResources = null)
+        public YtReposter()
         {
-            string pathToResourcesTemp = string.IsNullOrEmpty(pathToResources) ? (Environment.CurrentDirectory.Contains("bin") ? Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName : Environment.CurrentDirectory) + $"{System.IO.Path.AltDirectorySeparatorChar}Resources{System.IO.Path.AltDirectorySeparatorChar}" : pathToResources;
-
-            PathToChannelsConfig = pathToResourcesTemp + "channels.json";
-            PathToSettingsConfig = pathToResourcesTemp + "settings.json";
+            Directory.GetCurrentDirectory();
+            string pathToResourcesTemp = Environment.CurrentDirectory + $"{Path.DirectorySeparatorChar}Resources";
+            Console.WriteLine(pathToResourcesTemp);
+            PathToChannelsConfig = pathToResourcesTemp + $"{Path.DirectorySeparatorChar}channels.json";
+            PathToSettingsConfig = pathToResourcesTemp + $"{Path.DirectorySeparatorChar}settings.json";
 
             _channels = new List<Channel>();
 
@@ -50,7 +52,7 @@ namespace YtToVkReposter
 
             //загружаем конфигурацию логировщика
             log4net.Config.XmlConfigurator.Configure(logRepository,
-                                                     new System.IO.FileInfo(pathToResourcesTemp + "log4net.config"));
+                                                     new System.IO.FileInfo(pathToResourcesTemp + $"{Path.DirectorySeparatorChar}log4net.config"));
             Logger = log4net.LogManager.GetLogger(typeof(YtReposter));
 
             startServerTime = DateTime.UtcNow;
