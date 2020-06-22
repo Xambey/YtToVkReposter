@@ -9,9 +9,9 @@ RUN dotnet restore -r linux-musl-x64
 # copy everything else and build app
 COPY YtToVkReposter/. ./YtToVkReposter/
 WORKDIR /source/YtToVkReposter
-RUN dotnet publish -c Release -o /app -r linux-musl-x64 --self-contained true --no-restore /p:PublishTrimmed=true /p:PublishReadyToRun=true
+RUN dotnet publish -c Release -o /app -r linux-musl-x64 --self-contained false --no-restore /p:PublishTrimmed=true
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1.5-alpine3.12 AS runtime
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/ ./
 ENTRYPOINT ["./YtToVkReposter"]
